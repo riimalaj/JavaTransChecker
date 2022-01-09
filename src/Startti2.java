@@ -1,6 +1,6 @@
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.Border;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,133 +11,211 @@ import java.io.IOException;
 import java.util.Locale;
 
 import static javax.swing.BorderFactory.createLineBorder;
-import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE;
 
 public class Startti2 {
     private JButton button1;
     private JLabel labelFilename;
     private JPanel panel2;
     private JLabel labelResult;
-    private JFrame frame;
+    private JLabel initialImg;
+    private JLabel lblFix;
+    private JLabel correctedImg;
+    //private JFrame frame;
     private boolean transparency = false;
 
     public Startti2() {
         button1.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
                 String fileName = "";
-                String currentPath = "";
+                String status = "Initial";
                 try {
-                    currentPath = new java.io.File("C:\\Users\\jra\\OneDrive - Whitelake Software Point Oy\\Pictures\\trans\\").getCanonicalPath();
+                    String userDir = System.getProperty("user.home");
+                    final JFileChooser fc = new JFileChooser(userDir + "/trans");
+                    FileNameExtensionFilter filter = new FileNameExtensionFilter("*.Images", "jpg", "png", "gif");
+                    fc.addChoosableFileFilter(filter);
 
-                    final JFileChooser fc = new JFileChooser(currentPath);
-                    int response = fc.showOpenDialog(null);
+                    int result = fc.showSaveDialog(null);
+                    int response = fc.showOpenDialog(fc);
 
                     if (response == JFileChooser.APPROVE_OPTION) {
-                        fileName = fc.getSelectedFile().toString();
-                        System.out.println("Filename selected " + fileName);
+                        File selectedFile = fc.getSelectedFile();
+                        String path = selectedFile.getAbsolutePath();
+                        //toLowerCase used to identify that file is initial..
+                        fileName = selectedFile.toString().toLowerCase(Locale.ROOT);
+                        initialImg.setIcon(ResizeImage(path, status));
+
+                        //Check transparency
+                        try {
+                            BufferedImage image;
+                            image = ImageIO.read(new File(fileName));
+                            System.out.println("File in BufferedReader");
+
+                            //iterate over pixels.
+                            for (int i = 0; i < image.getWidth(); i++) {
+                                for (int j = 0; j < image.getHeight(); j++) {
+
+                                    int pixel = image.getRGB(i, j);
+                                    if (pixel >>> 24 == 0x00) {
+                                        transparency = true;
+
+                                    } else {
+                                        transparency = false;
+                                    }
+                                }
+                            }
+
+                            //Verdict
+                            labelResult.setOpaque(true);
+                            labelResult.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
+                            //labelResult.setBounds(600, 600, 300, 100);
+
+                            if (transparency) {
+                                System.out.println("Filename: " + fileName);
+                                labelResult.setBackground(Color.red);
+                                labelResult.setText(fileName + " is transparent");
+
+                                int resp = JOptionPane.showConfirmDialog(panel2, "Yes to fix, no to exit", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+
+                                if (resp == JOptionPane.YES_OPTION) {
+                                    try {
+                                        System.out.println("Starting to fix transparent image");
+
+                                        //Delete existing file if any.
+                                        File fName = new File(fileName);
+                                        File newDir = new File("C:/Users/jra/trans/Fixed/");
+                                        File completePath = new File("C:/Users/jra/trans/Fixed/" + fName.getName());
+
+                                        if (completePath.exists()){
+                                            completePath.delete();
+                                            System.out.println("File deleted from Fixed directory");
+
+                                        }
+
+                                        BufferedImage transImg = colorImage(ImageIO.read(new File(fileName)));
+                                        ImageIO.write(transImg, "png", completePath);
+
+                                        //Showing image
+                                        correctedImg.setIcon(ResizeImage(completePath.toString(), "fixed"));
+
+                                        //check differences...
+                                        compare(image, transImg, labelResult);
+
+                                    } catch (IOException writeE) {
+                                        System.out.println(writeE.getStackTrace());
+                                    }
+
+                                } else if (resp == JOptionPane.NO_OPTION) {
+                                    System.out.println("No selected, nothing to be done");
+                                    //System.exit(0);
+                                }
+
+                            } else {
+
+                                labelResult.setBackground(Color.green);
+                                labelResult.setText(fileName + " is not Transparent");
+                            }
+
+                        } catch (IOException exp) {
+                            System.out.println("" + exp.getMessage());
+                        }
                     } else {
-                        labelFilename.setText("User cancelled");
+                        labelResult.setText("User cancelled");
                     }
-                    //Check transparency (seems that it's not working)
-                    try {
-                        BufferedImage image;
-                        image = ImageIO.read(new File(fileName));
-                        System.out.println("File in BufferedReader");
-
-                        //iterate over pixels.
-                        for (int i = 0; i < image.getWidth(); i++) {
-                            for (int j = 0; j < image.getHeight(); j++) {
-
-                                int pixel = image.getRGB(i, j);
-                                if (pixel >>> 24 == 0x00) {
-                                    transparency = true;
-
-                                } else {
-                                    transparency = false;
-                                }
-                            }
-                        }
-
-                        //Verdict
-                        labelResult.setOpaque(true);
-                        labelResult.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
-                        labelResult.setBounds(600, 600, 300, 100);
-
-                        if (transparency) {
-                            System.out.println("Filename: " + fileName);
-                            labelFilename.setText(fileName);
-                            labelResult.setBackground(Color.red);
-                            labelResult.setText("Transparent");
-
-                            int resp = JOptionPane.showConfirmDialog(panel2, "Yes to fix, no to exit", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-
-                            if (resp == JOptionPane.YES_OPTION) {
-                                //Fixing transparent file
-                                System.out.println("Starting to fix transparen image");
-
-                                try {
-                                    System.out.println("on try");
-                                    BufferedImage img = colorImage(ImageIO.read(new File(fileName)));
-
-                                    ImageIO.write(img, "png", new File(fileName.toUpperCase(Locale.ROOT)));
-                                    System.out.println("Check new file");
-                                } catch (IOException writeE) {
-                                    System.out.println(writeE.getStackTrace());
-                                }
-
-
-                            } else if (resp == JOptionPane.NO_OPTION) {
-                                System.out.println("No selected, nothing to be done");
-                                //System.exit(0);
-                            }
-
-                        } else {
-                            labelFilename.setText(fileName);
-                            labelResult.setBackground(Color.green);
-                            labelResult.setText("Not Transparent");
-                        }
-
-                    } catch (IOException exp) {
-                        System.out.println("" + exp.getMessage());
-
-                    }
-                } catch (
-                        IOException ioException) {
-                    ioException.printStackTrace();
+                } catch (Exception exp) {
+                    System.out.println("" + exp.getMessage());
                 }
             }
         });
     }
 
-    private static BufferedImage colorImage(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        WritableRaster raster = image.getRaster();
-
-        for (int xx = 0; xx < width; xx++) {
-            for (int yy = 0; yy < height; yy++) {
-                int[] pixels = raster.getPixel(xx, yy, (int[]) null);
-                pixels[0] = 0;
-                pixels[1] = 0;
-                pixels[2] = 255;
-                raster.setPixel(xx, yy, pixels); // Set to white
+    public static void compare(BufferedImage image, BufferedImage transImg, JLabel labelResult) throws Exception {
+        BufferedImage img1 = image;
+        BufferedImage img2 = transImg;
+        int w1 = img1.getWidth();
+        int w2 = img2.getWidth();
+        int h1 = img1.getHeight();
+        int h2 = img2.getHeight();
+        if ((w1!=w2)||(h1!=h2)) {
+            System.out.println("Both images should have same dimwnsions");
+        } else {
+            long diff = 0;
+            for (int j = 0; j < h1; j++) {
+                for (int i = 0; i < w1; i++) {
+                    //Getting the RGB values of a pixel
+                    int pixel1 = img1.getRGB(i, j);
+                    Color color1 = new Color(pixel1, true);
+                    int r1 = color1.getRed();
+                    int g1 = color1.getGreen();
+                    int b1 = color1.getBlue();
+                    int pixel2 = img2.getRGB(i, j);
+                    Color color2 = new Color(pixel2, true);
+                    int r2 = color2.getRed();
+                    int g2 = color2.getGreen();
+                    int b2= color2.getBlue();
+                    //sum of differences of RGB values of the two images
+                    long data = Math.abs(r1-r2)+Math.abs(g1-g2)+ Math.abs(b1-b2);
+                    diff = diff+data;
+                }
+            }
+            double avg = diff/(w1*h1*3);
+            double percentage = (avg/255)*100;
+            System.out.println("Difference: "+percentage);
+            if ( percentage != 0.0 ){
+                labelResult.setText("Differences with initial and fixed one");
+            }else{
+                labelResult.setText("Fix didn't do anything....");
             }
         }
-        return image;
     }
 
 
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("Startti");
-        frame.setBounds(600, 200, 400, 200);
-        frame.setContentPane(new Startti2().panel2);
+
+        public ImageIcon ResizeImage (String ImagePath, String status){
+            ImageIcon MyImage = new ImageIcon(ImagePath);
+            MyImage.setDescription("Image:" + ImagePath + ", initial / after: " + status);
+            Image img = MyImage.getImage();
+            Image newImg = img.getScaledInstance(300, 400, Image.SCALE_SMOOTH);
+            ImageIcon image = new ImageIcon(newImg);
+            return image;
+        }
+
+        private static BufferedImage colorImage (BufferedImage image){
+            int width = image.getWidth();
+            int height = image.getHeight();
+            WritableRaster raster = image.getRaster();
+
+            for (int xx = 0; xx < width; xx++) {
+                for (int yy = 0; yy < height; yy++) {
+                    int[] pixels = raster.getPixel(xx, yy, (int[]) null);
+                    pixels[0] = 0;
+                    pixels[1] = 0;
+                    pixels[2] = 0;
+                    raster.setPixel(xx, yy, pixels); // Set to white
+                }
+
+                // Fill background  with white
+                Graphics2D graphics = image.createGraphics();
+                try {
+                    graphics.setComposite(AlphaComposite.DstOver); // Set composite rules to paint "behind"
+                    graphics.setPaint(Color.WHITE);
+                    graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+                }
+                finally {
+                    graphics.dispose();
+                }
+
+            }
+            return image;
+        }
 
 
-        //frame.setLayout(null);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
+        public static void main (String[]args){
+            JFrame frame = new JFrame("Startti");
+            frame.setBounds(600, 200, 600, 600);
+            frame.setContentPane(new Startti2().panel2);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.pack();
+            frame.setVisible(true);
+        }
     }
-}
