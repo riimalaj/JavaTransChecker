@@ -86,7 +86,7 @@ public class Startti2 {
                                         File newDir = new File("C:/Users/jra/trans/Fixed/");
                                         File completePath = new File("C:/Users/jra/trans/Fixed/" + fName.getName());
 
-                                        if (completePath.exists()){
+                                        if (completePath.exists()) {
                                             completePath.delete();
                                             System.out.println("File deleted from Fixed directory");
 
@@ -136,7 +136,7 @@ public class Startti2 {
         int w2 = img2.getWidth();
         int h1 = img1.getHeight();
         int h2 = img2.getHeight();
-        if ((w1!=w2)||(h1!=h2)) {
+        if ((w1 != w2) || (h1 != h2)) {
             System.out.println("Both images should have same dimwnsions");
         } else {
             long diff = 0;
@@ -152,70 +152,59 @@ public class Startti2 {
                     Color color2 = new Color(pixel2, true);
                     int r2 = color2.getRed();
                     int g2 = color2.getGreen();
-                    int b2= color2.getBlue();
+                    int b2 = color2.getBlue();
                     //sum of differences of RGB values of the two images
-                    long data = Math.abs(r1-r2)+Math.abs(g1-g2)+ Math.abs(b1-b2);
-                    diff = diff+data;
+                    long data = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+                    diff = diff + data;
                 }
             }
-            double avg = diff/(w1*h1*3);
-            double percentage = (avg/255)*100;
-            System.out.println("Difference: "+percentage);
-            if ( percentage != 0.0 ){
+            double avg = diff / (w1 * h1 * 3);
+            double percentage = (avg / 255) * 100;
+            System.out.println("Difference: " + percentage);
+            if (percentage != 0.0) {
                 labelResult.setText("Differences with initial and fixed one");
-            }else{
+            } else {
                 labelResult.setText("Fix didn't do anything....");
             }
         }
     }
 
 
-
-        public ImageIcon ResizeImage (String ImagePath, String status){
-            ImageIcon MyImage = new ImageIcon(ImagePath);
-            MyImage.setDescription("Image:" + ImagePath + ", initial / after: " + status);
-            Image img = MyImage.getImage();
-            Image newImg = img.getScaledInstance(300, 400, Image.SCALE_SMOOTH);
-            ImageIcon image = new ImageIcon(newImg);
-            return image;
-        }
-
-        private static BufferedImage colorImage (BufferedImage image){
-            int width = image.getWidth();
-            int height = image.getHeight();
-            WritableRaster raster = image.getRaster();
-
-            for (int xx = 0; xx < width; xx++) {
-                for (int yy = 0; yy < height; yy++) {
-                    int[] pixels = raster.getPixel(xx, yy, (int[]) null);
-                    pixels[0] = 0;
-                    pixels[1] = 0;
-                    pixels[2] = 0;
-                    raster.setPixel(xx, yy, pixels); // Set to white
-                }
-
-                // Fill background  with white
-                Graphics2D graphics = image.createGraphics();
-                try {
-                    graphics.setComposite(AlphaComposite.DstOver); // Set composite rules to paint "behind"
-                    graphics.setPaint(Color.WHITE);
-                    graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
-                }
-                finally {
-                    graphics.dispose();
-                }
-
-            }
-            return image;
-        }
-
-
-        public static void main (String[]args){
-            JFrame frame = new JFrame("Startti");
-            frame.setBounds(600, 200, 600, 600);
-            frame.setContentPane(new Startti2().panel2);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.pack();
-            frame.setVisible(true);
-        }
+    public ImageIcon ResizeImage(String ImagePath, String status) {
+        ImageIcon MyImage = new ImageIcon(ImagePath);
+        MyImage.setDescription("Image:" + ImagePath + ", initial / after: " + status);
+        Image img = MyImage.getImage();
+        Image newImg = img.getScaledInstance(300, 400, Image.SCALE_SMOOTH);
+        ImageIcon image = new ImageIcon(newImg);
+        return image;
     }
+
+    private static BufferedImage colorImage(BufferedImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        // Fix image if having alpha parts
+        if (image.getTransparency() == Transparency.TRANSLUCENT) {
+            //Fill non parency parts
+            Graphics2D graphics = image.createGraphics();
+            try {
+                graphics.setComposite(AlphaComposite.DstOver); // Set composite rules to paint "behind"
+                graphics.setPaint(Color.WHITE);
+                graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+            } finally {
+                graphics.dispose();
+            }
+        }
+
+        return image;
+    }
+
+
+    public static void main(String[] args) {
+        JFrame frame = new JFrame("Startti");
+        frame.setBounds(600, 200, 600, 600);
+        frame.setContentPane(new Startti2().panel2);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+}
