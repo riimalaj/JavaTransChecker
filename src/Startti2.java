@@ -20,6 +20,7 @@ public class Startti2 {
     private JLabel initialImg;
     private JLabel lblFix;
     private JLabel correctedImg;
+    private JFrame frame;
     //private JFrame frame;
     private boolean transparency = false;
 
@@ -30,6 +31,7 @@ public class Startti2 {
                 String fileName = "";
                 String status = "Initial";
                 try {
+                    JOptionPane.showMessageDialog(frame, "File structure requirement C:/Users/jra/trans/Fixed");
                     String userDir = System.getProperty("user.home");
                     final JFileChooser fc = new JFileChooser(userDir + "/trans");
                     FileNameExtensionFilter filter = new FileNameExtensionFilter("*.Images", "jpg", "png", "gif");
@@ -41,7 +43,6 @@ public class Startti2 {
                     if (response == JFileChooser.APPROVE_OPTION) {
                         File selectedFile = fc.getSelectedFile();
                         String path = selectedFile.getAbsolutePath();
-                        //toLowerCase used to identify that file is initial..
                         fileName = selectedFile.toString().toLowerCase(Locale.ROOT);
                         initialImg.setIcon(ResizeImage(path, status));
 
@@ -66,9 +67,9 @@ public class Startti2 {
                             }
 
                             //Verdict
+
                             labelResult.setOpaque(true);
                             labelResult.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
-                            //labelResult.setBounds(600, 600, 300, 100);
 
                             if (transparency) {
                                 System.out.println("Filename: " + fileName);
@@ -80,7 +81,6 @@ public class Startti2 {
                                 if (resp == JOptionPane.YES_OPTION) {
                                     try {
                                         System.out.println("Starting to fix transparent image");
-
                                         //Delete existing file if any.
                                         File fName = new File(fileName);
                                         File newDir = new File("C:/Users/jra/trans/Fixed/");
@@ -111,7 +111,6 @@ public class Startti2 {
                                 }
 
                             } else {
-
                                 labelResult.setBackground(Color.green);
                                 labelResult.setText(fileName + " is not Transparent");
                             }
@@ -129,6 +128,9 @@ public class Startti2 {
         });
     }
 
+    /*
+    Verification of fixes done.
+     */
     public static void compare(BufferedImage image, BufferedImage transImg, JLabel labelResult) throws Exception {
         BufferedImage img1 = image;
         BufferedImage img2 = transImg;
@@ -137,7 +139,7 @@ public class Startti2 {
         int h1 = img1.getHeight();
         int h2 = img2.getHeight();
         if ((w1 != w2) || (h1 != h2)) {
-            System.out.println("Both images should have same dimwnsions");
+            System.out.println("Both images should have same dimensions");
         } else {
             long diff = 0;
             for (int j = 0; j < h1; j++) {
@@ -169,7 +171,7 @@ public class Startti2 {
         }
     }
 
-
+    //Resizing image to label size.
     public ImageIcon ResizeImage(String ImagePath, String status) {
         ImageIcon MyImage = new ImageIcon(ImagePath);
         MyImage.setDescription("Image:" + ImagePath + ", initial / after: " + status);
@@ -179,12 +181,14 @@ public class Startti2 {
         return image;
     }
 
+
+    //Fixing image
     private static BufferedImage colorImage(BufferedImage image) {
         int width = image.getWidth();
         int height = image.getHeight();
         // Fix image if having alpha parts
         if (image.getTransparency() == Transparency.TRANSLUCENT) {
-            //Fill non parency parts
+            //Fill non transparency parts
             Graphics2D graphics = image.createGraphics();
             try {
                 graphics.setComposite(AlphaComposite.DstOver); // Set composite rules to paint "behind"
