@@ -5,14 +5,11 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
 
-import static javax.swing.BorderFactory.createLineBorder;
-
-public class Startti2 {
+public class Startti2 extends JPanel{
     private JButton button1;
     private JLabel labelFilename;
     private JPanel panel2;
@@ -20,18 +17,31 @@ public class Startti2 {
     private JLabel initialImg;
     private JLabel lblFix;
     private JLabel correctedImg;
+    private JLabel fixedLabel;
     private JFrame frame;
-    //private JFrame frame;
+
     private boolean transparency = false;
 
     public Startti2() {
+
+        fixedLabel.setVisible(false);
+        JFrame frame = new JFrame("Startti");
+        frame.setContentPane(panel2);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //frame.pack();
+        frame.setBounds(600, 100, 400, 300);
+        frame.setVisible(true);
+
+
+
         button1.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String fileName = "";
                 String status = "Initial";
+                BufferedImage image = null;
                 try {
-                    JOptionPane.showMessageDialog(frame, "File structure requirement C:/Users/jra/trans/Fixed");
+                    //JOptionPane.showMessageDialog(frame, "File structure requirement C:/Users/jra/trans/Fixed");
                     String userDir = System.getProperty("user.home");
                     final JFileChooser fc = new JFileChooser(userDir + "/trans");
                     FileNameExtensionFilter filter = new FileNameExtensionFilter("*.Images", "jpg", "png", "gif");
@@ -44,11 +54,11 @@ public class Startti2 {
                         File selectedFile = fc.getSelectedFile();
                         String path = selectedFile.getAbsolutePath();
                         fileName = selectedFile.toString().toLowerCase(Locale.ROOT);
-                        initialImg.setIcon(ResizeImage(path, status));
 
                         //Check transparency
                         try {
-                            BufferedImage image;
+                            frame.setBounds(400,100, 1100, 800);
+
                             image = ImageIO.read(new File(fileName));
                             System.out.println("File in BufferedReader");
 
@@ -67,14 +77,13 @@ public class Startti2 {
                             }
 
                             //Verdict
-
                             labelResult.setOpaque(true);
                             labelResult.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2, true));
 
-                            if (transparency) {
+                            if (transparency || image.getColorModel().hasAlpha()) {
                                 System.out.println("Filename: " + fileName);
                                 labelResult.setBackground(Color.red);
-                                labelResult.setText(fileName + " is transparent");
+                                labelResult.setText("Original img " + fileName + " is transparent");
 
                                 int resp = JOptionPane.showConfirmDialog(panel2, "Yes to fix, no to exit", "Confirm", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 
@@ -89,17 +98,30 @@ public class Startti2 {
                                         if (completePath.exists()) {
                                             completePath.delete();
                                             System.out.println("File deleted from Fixed directory");
-
                                         }
 
-                                        BufferedImage transImg = colorImage(ImageIO.read(new File(fileName)));
-                                        ImageIO.write(transImg, "png", completePath);
+                                        BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+                                        Graphics2D g2d = copy.createGraphics();
 
-                                        //Showing image
+                                        //Fill non transparency parts
+                                        try {
+                                            g2d.setColor(Color.WHITE);
+                                            g2d.fillRect(0, 0, copy.getWidth(), copy.getHeight());
+                                            g2d.drawImage(image, 0, 0, null);
+
+                                        } finally {
+                                            g2d.dispose();
+                                        }
+                                        ImageIO.write(copy, "png", completePath);
+
+                                        //Showing image and related label.
+                                        fixedLabel.setText("Non transparency img in " + completePath);
+                                        fixedLabel.setBackground(Color.green);
+                                        fixedLabel.setVisible(true);
                                         correctedImg.setIcon(ResizeImage(completePath.toString(), "fixed"));
 
                                         //check differences...
-                                        compare(image, transImg, labelResult);
+                                        compare(image, copy, labelResult);
 
                                     } catch (IOException writeE) {
                                         System.out.println(writeE.getStackTrace());
@@ -119,6 +141,8 @@ public class Startti2 {
                             System.out.println("" + exp.getMessage());
                         }
                     } else {
+                        //initialImg.setIcon(ResizeImage(path, status));
+
                         labelResult.setText("User cancelled");
                     }
                 } catch (Exception exp) {
@@ -128,6 +152,12 @@ public class Startti2 {
         });
     }
 
+    public void makeitBigger(){
+        System.out.println("makeitBigger");
+        //frame.setSize(new Dimension(900, 900));
+        frame.setBounds(600, 200, 1000, 1000);
+        frame.setVisible(true);
+    }
     /*
     Verification of fixes done.
      */
@@ -164,7 +194,7 @@ public class Startti2 {
             double percentage = (avg / 255) * 100;
             System.out.println("Difference: " + percentage);
             if (percentage != 0.0) {
-                labelResult.setText("Differences with initial and fixed one");
+                labelResult.setText(percentage + " differences with initial and fixed one");
             } else {
                 labelResult.setText("Fix didn't do anything....");
             }
@@ -203,12 +233,13 @@ public class Startti2 {
     }
 
 
+    public static JFrame setFrame(JFrame frame){
+        return frame;
+    }
+
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Startti");
-        frame.setBounds(600, 200, 600, 600);
-        frame.setContentPane(new Startti2().panel2);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.pack();
-        frame.setVisible(true);
+        new Startti2();
+
+
     }
 }
